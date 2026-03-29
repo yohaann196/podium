@@ -873,7 +873,8 @@ function beginSpeech() {
     const ss=st.customSpeechSecs, untimed=ss===0;
     document.getElementById('speech-format-tag').textContent=untimed?'CUSTOM · UNTIMED':'CUSTOM · '+fmt(ss);
     document.getElementById('nsda-speech-info').style.display='none';
-    document.getElementById('struct-guide').style.display='flex';
+    document.getElementById('struct-guide').style.display=st.showHints?'flex':'none';
+    document.getElementById('speech-phase-label').textContent='';
     document.getElementById('speech-progress-bar').style.display='block';
 
     const struct=getStructure(untimed?180:ss);
@@ -902,12 +903,14 @@ function beginSpeech() {
         if (rem===30) flashAlert('30 SECONDS');
         if (rem===0) { flashAlert("TIME'S UP!"); setTimeout(()=>endSpeech(),800); }
         // structure
-        const segs=guide.querySelectorAll('.struct-segment');
-        let ai=segs.length-1;
-        segs.forEach((seg,i)=>{ if(st.speechElapsed<=+seg.dataset.end) ai=Math.min(ai,i); });
-        segs.forEach((seg,i)=>seg.classList.toggle('active',i===ai));
-        document.getElementById('speech-phase-label').textContent=struct[ai]?.name||'';
-        bounds.forEach((b,i)=>{ if(st.speechElapsed===b&&i<bounds.length-1) flashAlert(struct[i+1].name.toUpperCase()); });
+        if (st.showHints) {
+          const segs=guide.querySelectorAll('.struct-segment');
+          let ai=segs.length-1;
+          segs.forEach((seg,i)=>{ if(st.speechElapsed<=+seg.dataset.end) ai=Math.min(ai,i); });
+          segs.forEach((seg,i)=>seg.classList.toggle('active',i===ai));
+          document.getElementById('speech-phase-label').textContent=struct[ai]?.name||'';
+          bounds.forEach((b,i)=>{ if(st.speechElapsed===b&&i<bounds.length-1) flashAlert(struct[i+1].name.toUpperCase()); });
+        }
       }
     },1000);
   }

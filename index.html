@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PODIUM — Impromptu Debate Trainer</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Playfair+Display:ital,wght@0,400;1,700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --ink: #0d0d0d;
+    --paper: #f5f0e8;
+    --cream: #ede8dc;
+    --accent: #c8392b;
+    --gold: #c9a84c;
+    --green: #2a7a3b;
+    --faint: rgba(13,13,13,0.08);
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none; z-index: 999;
+    mix-blend-mode: multiply;
+  }
+
+  header {
+    padding: 1.5rem 2.5rem;
+    display: flex; align-items: baseline; gap: 1.5rem;
+    background: var(--ink); color: var(--paper);
+  }
+  .logo { font-family: 'Bebas Neue', sans-serif; font-size: 3.5rem; letter-spacing: 0.08em; line-height: 1; color: var(--paper); }
+  .logo span { color: var(--accent); }
+  .tagline { font-size: 0.65rem; letter-spacing: 0.18em; text-transform: uppercase; opacity: 0.6; border-left: 1px solid rgba(245,240,232,0.3); padding-left: 1.5rem; }
+
+  main { max-width: 920px; margin: 0 auto; padding: 3rem 2rem 6rem; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .screen-heading { font-family: 'Bebas Neue', sans-serif; font-size: 1rem; letter-spacing: 0.25em; text-transform: uppercase; opacity: 0.4; margin-bottom: 0.25rem; }
+  .screen-title { font-family: 'Playfair Display', serif; font-size: 2.2rem; line-height: 1.2; margin-bottom: 2rem; }
+  .section-label { font-size: 0.6rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--accent); margin-bottom: 0.75rem; display: block; }
+
+  .card { background: var(--cream); border: 2px solid var(--ink); padding: 1.75rem; position: relative; margin-bottom: 1.5rem; }
+  .card::after { content: ''; position: absolute; bottom: -5px; right: -5px; width: 100%; height: 100%; border: 2px solid var(--ink); z-index: -1; }
+  .card h2 { font-family: 'Playfair Display', serif; font-size: 1.3rem; margin-bottom: 1.1rem; }
+
+  /* FORMAT TABS */
+  .format-tabs { display: flex; border: 2px solid var(--ink); margin-bottom: 1.5rem; overflow: hidden; }
+  .fmt-tab { flex: 1; padding: 0.9rem 1rem; background: none; border: none; border-right: 1.5px solid var(--ink); cursor: pointer; font-family: 'DM Mono', monospace; font-size: 0.72rem; letter-spacing: 0.08em; transition: all 0.15s; text-align: center; line-height: 1.4; }
+  .fmt-tab:last-child { border-right: none; }
+  .fmt-tab .tab-name { display: block; font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; letter-spacing: 0.12em; }
+  .fmt-tab .tab-sub { display: block; font-size: 0.6rem; opacity: 0.5; letter-spacing: 0.1em; margin-top: 0.15rem; }
+  .fmt-tab:hover { background: var(--faint); }
+  .fmt-tab.selected { background: var(--ink); color: var(--paper); }
+
+  .fmt-panel { display: none; }
+  .fmt-panel.active { display: block; }
+
+  /* NSDA */
+  .nsda-info { background: var(--ink); color: var(--paper); padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; border-left: 4px solid var(--gold); font-size: 0.75rem; line-height: 1.7; }
+  .nsda-info strong { color: var(--gold); }
+  .nsda-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-top: 1rem; }
+  .nsda-stat { text-align: center; padding: 0.75rem; border: 1px solid rgba(245,240,232,0.2); }
+  .nsda-stat-val { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; display: block; color: var(--gold); line-height: 1; }
+  .nsda-stat-lbl { font-size: 0.55rem; letter-spacing: 0.15em; text-transform: uppercase; opacity: 0.5; margin-top: 0.2rem; display: block; }
+
+  .split-slider-area { margin-top: 1.25rem; padding: 1.25rem; border: 1.5px dashed rgba(245,240,232,0.3); }
+  .split-slider-area label { font-size: 0.62rem; letter-spacing: 0.15em; text-transform: uppercase; opacity: 0.6; display: block; margin-bottom: 0.75rem; }
+  .split-display { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; font-size: 0.75rem; }
+  .split-val { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: 0.08em; }
+  .split-val.prep-val { color: var(--gold); }
+  .split-val.speak-val { color: var(--accent); }
+  .split-sep { opacity: 0.3; }
+  input[type="range"] { width: 100%; accent-color: var(--gold); cursor: pointer; }
+  .split-bar { height: 8px; border: 1.5px solid rgba(245,240,232,0.3); margin-top: 0.75rem; display: flex; overflow: hidden; }
+  .split-bar-prep { background: var(--gold); transition: width 0.2s; }
+  .split-bar-speak { background: var(--accent); flex: 1; }
+
+  /* CUSTOM */
+  .custom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+  @media (max-width: 580px) { .custom-grid { grid-template-columns: 1fr; } }
+  .custom-field label { display: block; font-size: 0.6rem; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); margin-bottom: 0.35rem; }
+  .custom-field .field-desc { font-size: 0.62rem; opacity: 0.5; margin-bottom: 0.6rem; display: block; }
+  .num-control { display: flex; align-items: center; border: 1.5px solid var(--ink); }
+  .num-control button { width: 2.5rem; height: 2.5rem; border: none; background: var(--ink); color: var(--paper); font-size: 1.2rem; cursor: pointer; font-family: 'Bebas Neue', sans-serif; line-height: 1; transition: background 0.1s; }
+  .num-control button:hover { background: var(--accent); }
+  .num-control input { flex: 1; border: none; background: var(--cream); text-align: center; font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: 0.08em; color: var(--ink); padding: 0.25rem 0; outline: none; width: 0; }
+
+  /* categories */
+  .category-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+  @media (max-width: 440px) { .category-grid { grid-template-columns: 1fr 1fr; } }
+  .cat-btn { background: none; border: 1.5px solid var(--ink); padding: 0.55rem 0.4rem; cursor: pointer; font-family: 'DM Mono', monospace; font-size: 0.68rem; transition: all 0.15s; text-align: center; }
+  .cat-btn:hover, .cat-btn.selected { background: var(--gold); border-color: var(--gold); }
+
+  /* topic type */
+  .topic-type-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+  .tt-btn { background: none; border: 1.5px solid var(--ink); padding: 0.65rem 0.5rem; cursor: pointer; font-family: 'DM Mono', monospace; font-size: 0.68rem; transition: all 0.15s; text-align: center; line-height: 1.4; }
+  .tt-btn .tt-icon { display: block; font-size: 1.1rem; margin-bottom: 0.2rem; }
+  .tt-btn:hover, .tt-btn.selected { background: var(--ink); color: var(--paper); }
+
+  /* start */
+  .start-area { margin-top: 2.5rem; text-align: center; }
+  .big-btn { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; letter-spacing: 0.15em; padding: 1rem 4rem; background: var(--ink); color: var(--paper); border: none; cursor: pointer; transition: all 0.15s; position: relative; }
+  .big-btn::after { content: ''; position: absolute; bottom: -5px; right: -5px; width: 100%; height: 100%; background: var(--accent); z-index: -1; transition: all 0.15s; }
+  .big-btn:hover { transform: translate(-3px,-3px); }
+  .big-btn:hover::after { bottom: -8px; right: -8px; }
+
+  /* PICK SCREEN */
+  .pick-inner { max-width: 700px; margin: 0 auto; }
+  .prompt-cards { display: flex; flex-direction: column; gap: 1rem; margin: 2rem 0; }
+  .prompt-card { border: 2px solid var(--ink); padding: 1.4rem 1.75rem; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 1.25rem; background: var(--cream); position: relative; }
+  .prompt-card::after { content: ''; position: absolute; bottom: -4px; right: -4px; width: 100%; height: 100%; border: 2px solid var(--ink); z-index: -1; transition: all 0.2s; }
+  .prompt-card:hover { transform: translate(-3px,-3px); background: var(--ink); color: var(--paper); }
+  .prompt-card:hover::after { bottom: -7px; right: -7px; }
+  .prompt-num { font-family: 'Bebas Neue', sans-serif; font-size: 2.5rem; opacity: 0.18; line-height: 1; min-width: 2rem; }
+  .prompt-text { font-family: 'Playfair Display', serif; font-size: 1.15rem; line-height: 1.45; flex: 1; }
+  .prompt-category { font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; opacity: 0.4; margin-top: 0.25rem; display: block; }
+  .pick-note { font-size: 0.7rem; opacity: 0.4; letter-spacing: 0.08em; margin-bottom: 0.25rem; }
+
+  /* PREP */
+  .prep-container { max-width: 680px; margin: 0 auto; text-align: center; }
+  .topic-reveal { border: 3px solid var(--ink); background: var(--ink); color: var(--paper); padding: 2.25rem 2.5rem; margin-bottom: 1.75rem; position: relative; overflow: hidden; text-align: left; }
+  .topic-reveal::before { content: '"'; font-family: 'Playfair Display', serif; font-size: 8rem; position: absolute; top: -1rem; left: 0.5rem; opacity: 0.07; line-height: 1; pointer-events: none; }
+  .topic-type-tag { font-size: 0.58rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); margin-bottom: 0.75rem; display: block; }
+  .topic-text { font-family: 'Playfair Display', serif; font-size: 1.7rem; line-height: 1.35; }
+
+  /* NSDA total clock */
+  .nsda-total-timer { display: flex; align-items: center; justify-content: center; gap: 2rem; margin: 1.5rem 0; padding: 1.25rem; border: 2px solid var(--ink); background: var(--cream); flex-wrap: wrap; }
+  .nsda-clock { font-family: 'Bebas Neue', sans-serif; font-size: 4rem; letter-spacing: 0.05em; line-height: 1; }
+  .nsda-clock.urgent { color: var(--accent); }
+  .nsda-clock-label { font-size: 0.58rem; letter-spacing: 0.2em; text-transform: uppercase; opacity: 0.4; margin-top: 0.2rem; display: block; text-align: center; }
+  .nsda-phase-badges { display: flex; flex-direction: column; gap: 0.4rem; font-size: 0.7rem; }
+  .phase-badge { padding: 0.3rem 0.75rem; border: 1.5px solid var(--ink); text-align: center; letter-spacing: 0.08em; opacity: 0.3; transition: all 0.3s; }
+  .phase-badge.active { background: var(--ink); color: var(--paper); opacity: 1; }
+
+  /* Ring timer */
+  .timer-ring { width: 180px; height: 180px; margin: 1.5rem auto; position: relative; }
+  .timer-ring svg { transform: rotate(-90deg); }
+  .timer-ring circle { fill: none; stroke-width: 6; }
+  .timer-ring .track { stroke: var(--faint); }
+  .timer-ring .progress { stroke: var(--accent); stroke-linecap: round; transition: stroke-dashoffset 1s linear; }
+  .timer-num { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .timer-display { font-family: 'Bebas Neue', sans-serif; font-size: 3rem; line-height: 1; letter-spacing: 0.05em; }
+  .timer-label { font-size: 0.58rem; letter-spacing: 0.2em; text-transform: uppercase; opacity: 0.45; margin-top: 0.25rem; }
+
+  /* hints */
+  .hints-box { border: 1.5px solid var(--ink); padding: 1.5rem; text-align: left; margin: 1.25rem 0; background: var(--cream); }
+  .hints-box h3 { font-size: 0.58rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); margin-bottom: 1rem; }
+  .hint-item { display: flex; gap: 0.75rem; align-items: flex-start; margin-bottom: 0.6rem; font-size: 0.78rem; line-height: 1.5; opacity: 0; transform: translateX(-8px); transition: all 0.4s ease; }
+  .hint-item.visible { opacity: 1; transform: translateX(0); }
+  .hint-num { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; color: var(--gold); line-height: 1.1; min-width: 1.2rem; }
+
+  /* controls */
+  .controls { display: flex; gap: 1rem; justify-content: center; margin-top: 2rem; flex-wrap: wrap; }
+  .ctrl-btn { font-family: 'DM Mono', monospace; font-size: 0.73rem; letter-spacing: 0.1em; padding: 0.75rem 1.75rem; border: 2px solid var(--ink); background: none; cursor: pointer; transition: all 0.15s; text-transform: uppercase; }
+  .ctrl-btn:hover { background: var(--ink); color: var(--paper); }
+  .ctrl-btn.primary { background: var(--ink); color: var(--paper); }
+  .ctrl-btn.primary:hover { background: var(--accent); border-color: var(--accent); }
+  .ctrl-btn.danger { border-color: var(--accent); color: var(--accent); }
+  .ctrl-btn.danger:hover { background: var(--accent); color: #fff; }
+
+  /* SPEECH */
+  .speak-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid var(--ink); padding-bottom: 1.25rem; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+  .speak-topic { font-family: 'Playfair Display', serif; font-style: italic; font-size: 1rem; max-width: 65%; line-height: 1.45; }
+  .speak-format-tag { font-family: 'Bebas Neue', sans-serif; font-size: 0.85rem; letter-spacing: 0.15em; padding: 0.25rem 0.75rem; border: 1.5px solid var(--ink); white-space: nowrap; }
+
+  /* NSDA speech bar */
+  .nsda-speech-info { display: flex; align-items: center; justify-content: center; gap: 2rem; padding: 1rem; background: var(--cream); border: 1.5px solid var(--ink); margin-bottom: 1.25rem; font-size: 0.72rem; flex-wrap: wrap; }
+  .info-item { text-align: center; }
+  .info-val { font-family: 'Bebas Neue', sans-serif; font-size: 1.5rem; display: block; line-height: 1; }
+  .info-lbl { font-size: 0.55rem; letter-spacing: 0.15em; text-transform: uppercase; opacity: 0.4; margin-top: 0.15rem; display: block; }
+
+  /* structure */
+  .structure-guide { display: flex; border: 2px solid var(--ink); overflow: hidden; margin-bottom: 1.25rem; }
+  .struct-segment { flex: 1; padding: 0.9rem 0.5rem; text-align: center; border-right: 1.5px solid var(--ink); transition: background 0.3s; font-size: 0.65rem; }
+  .struct-segment:last-child { border-right: none; }
+  .struct-segment.active { background: var(--ink); color: var(--paper); }
+  .struct-name { font-family: 'Bebas Neue', sans-serif; font-size: 0.9rem; letter-spacing: 0.08em; display: block; }
+  .struct-time { font-size: 0.58rem; opacity: 0.45; letter-spacing: 0.08em; }
+
+  .progress-bar { height: 4px; background: var(--faint); margin: 0.75rem 0 1.5rem; }
+  .progress-fill { height: 100%; background: var(--accent); transition: width 1s linear; }
+
+  .speak-timer { text-align: center; margin: 1rem 0; }
+  .speak-time { font-family: 'Bebas Neue', sans-serif; font-size: 6rem; line-height: 1; letter-spacing: 0.05em; transition: color 0.3s; }
+  .speak-time.warning { color: var(--accent); }
+  .speak-time.overtime { color: var(--green); }
+  .speak-phase { font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; opacity: 0.45; }
+
+  /* REVIEW */
+  .review-title { font-family: 'Bebas Neue', sans-serif; font-size: 4rem; letter-spacing: 0.1em; }
+  .review-topic { font-family: 'Playfair Display', serif; font-style: italic; font-size: 1.05rem; opacity: 0.65; margin: 0.75rem 0 2rem; padding-bottom: 1.5rem; border-bottom: 2px solid var(--faint); }
+  .review-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 0.75rem; margin-bottom: 2rem; }
+  @media (max-width: 560px) { .review-stats { grid-template-columns: 1fr 1fr; } }
+  .stat-box { border: 2px solid var(--ink); padding: 1.1rem; text-align: center; }
+  .stat-val { font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem; display: block; line-height: 1; }
+  .stat-lbl { font-size: 0.58rem; letter-spacing: 0.12em; text-transform: uppercase; opacity: 0.45; margin-top: 0.2rem; display: block; }
+  .hl { color: var(--accent); }
+
+  /* NSDA criteria */
+  .criteria-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; margin-bottom: 2rem; }
+  @media (max-width: 560px) { .criteria-grid { grid-template-columns: 1fr; } }
+  .criterion-card { border: 2px solid var(--ink); padding: 1.25rem; background: var(--cream); }
+  .criterion-card h4 { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; letter-spacing: 0.1em; color: var(--accent); margin-bottom: 0.75rem; }
+  .criterion-card ul { list-style: none; }
+  .criterion-card ul li { font-size: 0.72rem; line-height: 1.5; padding: 0.3rem 0; border-bottom: 1px solid var(--faint); display: flex; gap: 0.5rem; }
+  .criterion-card ul li:last-child { border-bottom: none; }
+  .criterion-card ul li::before { content: '→'; opacity: 0.3; flex-shrink: 0; }
+
+  .feedback-area { border: 2px solid var(--ink); padding: 1.75rem; background: var(--cream); margin-bottom: 2rem; }
+  .feedback-area h3 { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: 0.1em; margin-bottom: 1rem; }
+  .feedback-checklist { list-style: none; }
+  .feedback-checklist li { display: flex; gap: 0.75rem; margin-bottom: 0.75rem; font-size: 0.78rem; line-height: 1.5; padding-bottom: 0.75rem; border-bottom: 1px solid var(--faint); }
+  .feedback-checklist li:last-child { border-bottom: none; margin-bottom: 0; }
+  .check-icon { font-size: 1rem; line-height: 1.2; min-width: 1.2rem; }
+
+  .session-log { border: 1.5px solid var(--faint); padding: 1.25rem; margin-bottom: 2rem; }
+  .session-log h3 { font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; opacity: 0.35; margin-bottom: 1rem; }
+  .log-entry { display: flex; justify-content: space-between; font-size: 0.7rem; padding: 0.4rem 0; border-bottom: 1px solid var(--faint); gap: 0.75rem; }
+  .log-entry:last-child { border-bottom: none; }
+  .log-topic { opacity: 0.65; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .log-fmt { opacity: 0.35; font-size: 0.62rem; white-space: nowrap; }
+  .log-dur { opacity: 0.35; white-space: nowrap; }
+
+  /* alert */
+  .phase-alert { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%) scale(0.8); background: var(--ink); color: var(--paper); padding: 1.25rem 2.5rem; font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem; letter-spacing: 0.15em; z-index: 1000; pointer-events: none; opacity: 0; transition: all 0.25s; text-align: center; border: 3px solid var(--accent); }
+  .phase-alert.show { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">POD<span>I</span>UM</div>
+  <div class="tagline">Impromptu Speech Trainer &mdash; Speak without fear</div>
+</header>
+
+<main>
+
+<!-- ===== SETUP ===== -->
+<div id="screen-setup" class="screen active">
+  <p class="screen-heading">Session Configuration</p>
+  <h1 class="screen-title">Choose Your Format</h1>
+
+  <div class="format-tabs">
+    <button class="fmt-tab selected" onclick="switchFormat('nsda',this)">
+      <span class="tab-name">NSDA</span>
+      <span class="tab-sub">Official Rules · 7 min total</span>
+    </button>
+    <button class="fmt-tab" onclick="switchFormat('custom',this)">
+      <span class="tab-name">Custom</span>
+      <span class="tab-sub">Your own rules</span>
+    </button>
+  </div>
+
+  <!-- NSDA -->
+  <div id="fmt-nsda" class="fmt-panel active">
+    <div class="card" style="padding:0;overflow:hidden">
+      <div class="nsda-info">
+        <strong>NSDA Impromptu Rules</strong> — Draw <strong>3 prompts</strong>, pick one, and use
+        <strong>7 minutes total</strong> however you want between prep and speech. No notes allowed.
+        Prompts can be quotes, current events, famous people, objects, or abstract ideas.
+        <div class="nsda-summary">
+          <div class="nsda-stat"><span class="nsda-stat-val">3</span><span class="nsda-stat-lbl">Prompts Drawn</span></div>
+          <div class="nsda-stat"><span class="nsda-stat-val">7</span><span class="nsda-stat-lbl">Total Minutes</span></div>
+          <div class="nsda-stat"><span class="nsda-stat-val">0</span><span class="nsda-stat-lbl">Notes Allowed</span></div>
+        </div>
+        <div class="split-slider-area">
+          <label>Suggested prep / speech split (drag to adjust your target)</label>
+          <div class="split-display">
+            <div><span class="split-val prep-val" id="nsda-prep-val">2:00</span><span style="font-size:0.6rem;opacity:0.45;display:block;letter-spacing:0.1em;margin-top:0.1rem">PREP</span></div>
+            <span class="split-sep">+</span>
+            <div><span class="split-val speak-val" id="nsda-speak-val">5:00</span><span style="font-size:0.6rem;opacity:0.45;display:block;letter-spacing:0.1em;margin-top:0.1rem">SPEECH</span></div>
+            <span class="split-sep">=</span>
+            <div><span class="split-val" style="color:var(--paper)">7:00</span><span style="font-size:0.6rem;opacity:0.45;display:block;letter-spacing:0.1em;margin-top:0.1rem">TOTAL</span></div>
+          </div>
+          <input type="range" id="nsda-split-range" min="30" max="390" step="30" value="120" oninput="updateNsdaSplit(this.value)">
+          <div class="split-bar">
+            <div class="split-bar-prep" id="split-bar-prep" style="width:28.6%"></div>
+            <div class="split-bar-speak"></div>
+          </div>
+          <p style="font-size:0.58rem;opacity:0.35;margin-top:0.6rem;letter-spacing:0.08em">You control when to stop prepping and begin speaking — the timer runs continuously.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Prompt Type</h2>
+      <span class="section-label">Style of prompts you'll draw</span>
+      <div class="topic-type-grid">
+        <button class="tt-btn selected" data-tt="all" onclick="selectTT(this)"><span class="tt-icon">🎲</span>Mixed</button>
+        <button class="tt-btn" data-tt="quotes" onclick="selectTT(this)"><span class="tt-icon">💬</span>Quotes</button>
+        <button class="tt-btn" data-tt="events" onclick="selectTT(this)"><span class="tt-icon">🌍</span>Current Events</button>
+        <button class="tt-btn" data-tt="people" onclick="selectTT(this)"><span class="tt-icon">🧑</span>Famous People</button>
+        <button class="tt-btn" data-tt="objects" onclick="selectTT(this)"><span class="tt-icon">📦</span>Objects / Places</button>
+        <button class="tt-btn" data-tt="abstract" onclick="selectTT(this)"><span class="tt-icon">💡</span>Abstract</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CUSTOM -->
+  <div id="fmt-custom" class="fmt-panel">
+    <div class="card">
+      <h2>Custom Settings</h2>
+      <div class="custom-grid">
+        <div class="custom-field">
+          <label>Number of Prompts</label>
+          <span class="field-desc">How many prompts to draw and choose from</span>
+          <div class="num-control">
+            <button onclick="adjustNum('custom-prompts',-1,1,5)">−</button>
+            <input type="number" id="custom-prompts" value="3" min="1" max="5" readonly>
+            <button onclick="adjustNum('custom-prompts',1,1,5)">+</button>
+          </div>
+        </div>
+        <div class="custom-field">
+          <label>Prep Time (minutes)</label>
+          <span class="field-desc">Brainstorm time before speaking</span>
+          <div class="num-control">
+            <button onclick="adjustNum('custom-prep',-1,0,30)">−</button>
+            <input type="number" id="custom-prep" value="2" min="0" max="30" readonly>
+            <button onclick="adjustNum('custom-prep',1,0,30)">+</button>
+          </div>
+        </div>
+        <div class="custom-field">
+          <label>Speech Time (minutes)</label>
+          <span class="field-desc">Max speaking time (0 = untimed)</span>
+          <div class="num-control">
+            <button onclick="adjustNum('custom-speech',-1,0,30)">−</button>
+            <input type="number" id="custom-speech" value="3" min="0" max="30" readonly>
+            <button onclick="adjustNum('custom-speech',1,0,30)">+</button>
+          </div>
+        </div>
+        <div class="custom-field">
+          <label>Topic Category</label>
+          <span class="field-desc">Theme for your prompts</span>
+          <div class="category-grid" style="margin-top:0">
+            <button class="cat-btn selected" data-cat="all" onclick="selectCat(this)">All</button>
+            <button class="cat-btn" data-cat="politics" onclick="selectCat(this)">Politics</button>
+            <button class="cat-btn" data-cat="tech" onclick="selectCat(this)">Tech</button>
+            <button class="cat-btn" data-cat="ethics" onclick="selectCat(this)">Ethics</button>
+            <button class="cat-btn" data-cat="society" onclick="selectCat(this)">Society</button>
+            <button class="cat-btn" data-cat="economics" onclick="selectCat(this)">Economy</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="start-area">
+    <button class="big-btn" onclick="startSession()">DRAW PROMPTS →</button>
+    <p style="font-size:0.62rem;opacity:0.35;margin-top:1rem;letter-spacing:0.1em">PROMPTS REVEALED ON NEXT SCREEN</p>
+  </div>
+</div>
+
+<!-- ===== TOPIC PICK ===== -->
+<div id="screen-pick" class="screen">
+  <div class="pick-inner">
+    <p class="screen-heading">Draw &amp; Choose</p>
+    <h1 class="screen-title" style="margin-bottom:0.5rem">Select Your Prompt</h1>
+    <p class="pick-note" id="pick-note"></p>
+    <div class="prompt-cards" id="prompt-cards"></div>
+    <div style="text-align:center">
+      <button class="ctrl-btn danger" onclick="goHome()">← Start Over</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PREP ===== -->
+<div id="screen-prep" class="screen">
+  <p class="screen-heading">Preparation Phase</p>
+  <h1 class="screen-title">Read. Think. Plan.</h1>
+  <div class="prep-container">
+    <div class="topic-reveal">
+      <span class="topic-type-tag" id="prep-type-tag"></span>
+      <div class="topic-text" id="prep-topic-text"></div>
+    </div>
+
+    <div id="nsda-timer-block" style="display:none">
+      <div class="nsda-total-timer">
+        <div>
+          <div class="nsda-clock" id="nsda-total-clock">7:00</div>
+          <span class="nsda-clock-label">TOTAL REMAINING</span>
+        </div>
+        <div class="nsda-phase-badges">
+          <div class="phase-badge active" id="phase-prep-badge">PREP</div>
+          <div class="phase-badge" id="phase-speak-badge">SPEECH</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="std-timer-block">
+      <div class="timer-ring">
+        <svg width="180" height="180" viewBox="0 0 180 180">
+          <circle class="track" cx="90" cy="90" r="80"/>
+          <circle class="progress" id="prep-ring" cx="90" cy="90" r="80" stroke-dasharray="502.7" stroke-dashoffset="0"/>
+        </svg>
+        <div class="timer-num">
+          <div class="timer-display" id="prep-timer">2:00</div>
+          <div class="timer-label">PREP</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hints-box">
+      <h3>🧠 Structure hints — appear gradually during prep</h3>
+      <div id="hints-container"></div>
+    </div>
+
+    <div class="controls">
+      <button class="ctrl-btn primary" onclick="beginSpeech()">▶ Begin Speech Now</button>
+      <button class="ctrl-btn danger" onclick="goHome()">← Start Over</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SPEECH ===== -->
+<div id="screen-speech" class="screen">
+  <div class="speak-header">
+    <div>
+      <p class="screen-heading">Live Speech</p>
+      <div class="speak-topic" id="speech-topic-display"></div>
+    </div>
+    <div class="speak-format-tag" id="speech-format-tag"></div>
+  </div>
+
+  <div class="nsda-speech-info" id="nsda-speech-info" style="display:none">
+    <div class="info-item"><span class="info-val" id="nsda-remain-clock">—</span><span class="info-lbl">Time Remaining</span></div>
+    <div class="info-item"><span class="info-val" id="nsda-elapsed-clock">0:00</span><span class="info-lbl">Speech Duration</span></div>
+    <div class="info-item"><span class="info-val" id="nsda-prep-used-disp">—</span><span class="info-lbl">Prep Used</span></div>
+  </div>
+
+  <div class="structure-guide" id="struct-guide"></div>
+  <div class="progress-bar" id="speech-progress-bar"><div class="progress-fill" id="speech-progress" style="width:100%"></div></div>
+
+  <div class="speak-timer">
+    <div class="speak-time" id="speech-timer">0:00</div>
+    <div class="speak-phase" id="speech-phase-label"></div>
+  </div>
+
+  <div class="controls">
+    <button class="ctrl-btn primary" onclick="endSpeech()">Finish Speech ✓</button>
+    <button class="ctrl-btn" onclick="goHome()">Abandon</button>
+  </div>
+</div>
+
+<!-- ===== REVIEW ===== -->
+<div id="screen-review" class="screen">
+  <div class="review-title">DEBRIEF</div>
+  <div class="review-topic" id="review-topic-display"></div>
+  <div class="review-stats" id="review-stats"></div>
+
+  <div class="criteria-grid" id="nsda-criteria" style="display:none">
+    <div class="criterion-card">
+      <h4>Organization</h4>
+      <ul>
+        <li>Clear intro, body, conclusion?</li>
+        <li>Smooth transitions?</li>
+        <li>Easy to follow throughout?</li>
+      </ul>
+    </div>
+    <div class="criterion-card">
+      <h4>Analysis</h4>
+      <ul>
+        <li>Directly addressed the prompt?</li>
+        <li>Justifications developed?</li>
+        <li>Significance established?</li>
+      </ul>
+    </div>
+    <div class="criterion-card">
+      <h4>Delivery</h4>
+      <ul>
+        <li>Consistent eye contact?</li>
+        <li>Confident, varied voice?</li>
+        <li>No notes used?</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="feedback-area">
+    <h3>Self-Check — Did you hit these?</h3>
+    <ul class="feedback-checklist" id="feedback-list"></ul>
+  </div>
+
+  <div id="session-log-container"></div>
+
+  <div class="controls">
+    <button class="big-btn" onclick="goHome()">← New Session</button>
+    <button class="ctrl-btn" onclick="retryTopic()">Same Prompt, Retry</button>
+  </div>
+</div>
+
+</main>
+<div class="phase-alert" id="phase-alert"></div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const PROMPTS = {
+  quotes: [
+    {text:"The only way to do great work is to love what you do.",sub:"Quote"},
+    {text:"Be the change you wish to see in the world.",sub:"Quote"},
+    {text:"In the middle of every difficulty lies opportunity.",sub:"Quote"},
+    {text:"The journey of a thousand miles begins with a single step.",sub:"Quote"},
+    {text:"The unexamined life is not worth living.",sub:"Quote"},
+    {text:"Two roads diverged in a wood, and I took the one less traveled by.",sub:"Quote"},
+    {text:"You miss 100% of the shots you don't take.",sub:"Quote"},
+    {text:"The best time to plant a tree was 20 years ago. The second best time is now.",sub:"Quote"},
+    {text:"It always seems impossible until it's done.",sub:"Quote"},
+    {text:"Not all those who wander are lost.",sub:"Quote"},
+  ],
+  events: [
+    {text:"The rapid rise of artificial intelligence in the workplace",sub:"Current Event"},
+    {text:"Global debate over social media age restrictions",sub:"Current Event"},
+    {text:"Rising cost of college tuition and student debt",sub:"Current Event"},
+    {text:"Climate change: individual vs. corporate responsibility",sub:"Current Event"},
+    {text:"The global mental health crisis among young people",sub:"Current Event"},
+    {text:"Declining trust in democratic institutions",sub:"Current Event"},
+    {text:"Misinformation and the future of journalism",sub:"Current Event"},
+    {text:"The push to colonize Mars",sub:"Current Event"},
+  ],
+  people: [
+    {text:"Malala Yousafzai",sub:"Famous Person"},
+    {text:"Elon Musk",sub:"Famous Person"},
+    {text:"Serena Williams",sub:"Famous Person"},
+    {text:"Abraham Lincoln",sub:"Famous Person"},
+    {text:"Marie Curie",sub:"Famous Person"},
+    {text:"Steve Jobs",sub:"Famous Person"},
+    {text:"Greta Thunberg",sub:"Famous Person"},
+    {text:"Nelson Mandela",sub:"Famous Person"},
+    {text:"Oprah Winfrey",sub:"Famous Person"},
+    {text:"Albert Einstein",sub:"Famous Person"},
+  ],
+  objects: [
+    {text:"A library",sub:"Object / Place"},
+    {text:"A compass",sub:"Object / Place"},
+    {text:"A smartphone",sub:"Object / Place"},
+    {text:"An empty stage",sub:"Object / Place"},
+    {text:"A broken clock",sub:"Object / Place"},
+    {text:"A seed",sub:"Object / Place"},
+    {text:"A mirror",sub:"Object / Place"},
+    {text:"A ballot box",sub:"Object / Place"},
+    {text:"A hospital waiting room",sub:"Object / Place"},
+    {text:"A border wall",sub:"Object / Place"},
+  ],
+  abstract: [
+    {text:"Silence",sub:"Abstract"},
+    {text:"The second chance",sub:"Abstract"},
+    {text:"Fear of the unknown",sub:"Abstract"},
+    {text:"The price of progress",sub:"Abstract"},
+    {text:"What we owe each other",sub:"Abstract"},
+    {text:"The burden of potential",sub:"Abstract"},
+    {text:"When rules become chains",sub:"Abstract"},
+    {text:"The illusion of choice",sub:"Abstract"},
+    {text:"Enough",sub:"Abstract"},
+    {text:"Growing pains",sub:"Abstract"},
+  ],
+};
+
+const DEBATE_TOPICS = {
+  politics: [
+    {text:"Voting should be mandatory for all eligible citizens",sub:"Politics"},
+    {text:"Term limits should apply to all elected officials",sub:"Politics"},
+    {text:"Civil disobedience is justified against unjust laws",sub:"Politics"},
+    {text:"The two-party system is fundamentally broken",sub:"Politics"},
+    {text:"Ranked choice voting should replace first-past-the-post",sub:"Politics"},
+  ],
+  tech: [
+    {text:"AI poses more risk than benefit to humanity",sub:"Technology"},
+    {text:"Social media companies should be liable for user content",sub:"Technology"},
+    {text:"Big tech must be broken up by antitrust regulation",sub:"Technology"},
+    {text:"Autonomous weapons should be banned internationally",sub:"Technology"},
+    {text:"Universal internet access is a human right",sub:"Technology"},
+  ],
+  ethics: [
+    {text:"Animal experimentation can never be ethically justified",sub:"Ethics"},
+    {text:"Whistleblowing is always justified when exposing wrongdoing",sub:"Ethics"},
+    {text:"Assisted dying should be legal in all democracies",sub:"Ethics"},
+    {text:"Privacy is more important than national security",sub:"Ethics"},
+    {text:"The ends justify the means in extreme circumstances",sub:"Ethics"},
+  ],
+  society: [
+    {text:"College education should be free for all citizens",sub:"Society"},
+    {text:"Cancel culture has done more harm than good",sub:"Society"},
+    {text:"Standardized testing should be abolished",sub:"Society"},
+    {text:"Open borders would benefit the global economy",sub:"Society"},
+    {text:"Religion does more harm than good in modern society",sub:"Society"},
+  ],
+  economics: [
+    {text:"A four-day work week should become the global standard",sub:"Economics"},
+    {text:"Billionaires are evidence of a broken economic system",sub:"Economics"},
+    {text:"Universal Basic Income should replace existing welfare",sub:"Economics"},
+    {text:"Free trade causes more harm to developing nations",sub:"Economics"},
+    {text:"The gig economy exploits workers more than it empowers",sub:"Economics"},
+  ],
+};
+
+const HINTS = [
+  "State your central message clearly within the first 20 seconds.",
+  "Root your argument in a concrete example, story, or vivid image.",
+  "Address the prompt directly — don't let your speech drift.",
+  "Use a 3-part structure: intro → 2–3 points → conclusion.",
+  "End with your strongest line — leave them with something memorable.",
+];
+
+const FEEDBACK = [
+  {icon:"🎯",text:"Did you state a clear thesis in the introduction?"},
+  {icon:"📚",text:"Did you use at least one concrete example or analogy?"},
+  {icon:"🔄",text:"Did you use transitions between each main point?"},
+  {icon:"🔁",text:"Did you tie your conclusion back to the prompt?"},
+  {icon:"🗣️",text:"Did you vary your pace and avoid filler words?"},
+  {icon:"👁️",text:"Did you maintain eye contact — no notes?"},
+  {icon:"💡",text:"Did your speech have a clear beginning, middle, and end?"},
+];
+
+// ============================================================
+// STATE
+// ============================================================
+let st = {
+  mode: 'nsda',
+  topicType: 'all',
+  category: 'all',
+  numPrompts: 3,
+  nsdaPrepSecs: 120,
+  customPrepSecs: 120,
+  customSpeechSecs: 180,
+  drawnPrompts: [],
+  chosen: null,
+  // runtime
+  nsdaRemaining: 420,
+  nsdaPrepUsed: 0,
+  prepRemaining: 0,
+  speechElapsed: 0,
+  speechDuration: 0,
+  prepTimer: null,
+  speechTimer: null,
+  hintTimers: [],
+  sessions: JSON.parse(localStorage.getItem('podium_v3') || '[]'),
+};
+
+// ============================================================
+// SETUP
+// ============================================================
+function switchFormat(mode, btn) {
+  document.querySelectorAll('.fmt-tab').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+  st.mode = mode;
+  document.getElementById('fmt-nsda').classList.toggle('active', mode==='nsda');
+  document.getElementById('fmt-custom').classList.toggle('active', mode==='custom');
+}
+
+function updateNsdaSplit(val) {
+  const prep = +val, speak = 420 - prep;
+  st.nsdaPrepSecs = prep;
+  document.getElementById('nsda-prep-val').textContent = fmt(prep);
+  document.getElementById('nsda-speak-val').textContent = fmt(speak);
+  document.getElementById('split-bar-prep').style.width = ((prep/420)*100).toFixed(1)+'%';
+}
+
+function selectTT(btn) {
+  document.querySelectorAll('.tt-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  st.topicType = btn.dataset.tt;
+}
+
+function selectCat(btn) {
+  btn.closest('.category-grid').querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  st.category = btn.dataset.cat;
+}
+
+function adjustNum(id, delta, min, max) {
+  const el = document.getElementById(id);
+  el.value = Math.min(max, Math.max(min, +el.value + delta));
+}
+
+function getPool() {
+  if (st.mode === 'custom') {
+    const src = st.category==='all' ? Object.values(DEBATE_TOPICS).flat() : (DEBATE_TOPICS[st.category]||[]);
+    return src;
+  }
+  return st.topicType==='all' ? Object.values(PROMPTS).flat() : (PROMPTS[st.topicType]||[]);
+}
+
+function startSession() {
+  st.numPrompts = +document.getElementById('custom-prompts').value;
+  st.customPrepSecs = +document.getElementById('custom-prep').value * 60;
+  st.customSpeechSecs = +document.getElementById('custom-speech').value * 60;
+
+  const pool = getPool().sort(()=>Math.random()-0.5);
+  const n = st.mode==='nsda' ? 3 : st.numPrompts;
+  st.drawnPrompts = pool.slice(0, Math.min(n, pool.length));
+  showPickScreen();
+}
+
+// ============================================================
+// PICK
+// ============================================================
+function showPickScreen() {
+  showScreen('pick');
+  const n = st.drawnPrompts.length;
+  document.getElementById('pick-note').textContent = n===1
+    ? 'Your prompt for this round:'
+    : `You drew ${n} prompts — click the one you want to speak on.`;
+  const c = document.getElementById('prompt-cards');
+  c.innerHTML = '';
+  st.drawnPrompts.forEach((p,i) => {
+    const d = document.createElement('div');
+    d.className = 'prompt-card';
+    d.onclick = () => choose(p);
+    d.innerHTML = `<div class="prompt-num">${i+1}</div><div><div class="prompt-text">${p.text}</div><span class="prompt-category">${p.sub}</span></div>`;
+    c.appendChild(d);
+  });
+}
+
+function choose(prompt) {
+  st.chosen = prompt;
+  beginPrep();
+}
+
+// ============================================================
+// PREP
+// ============================================================
+function beginPrep() {
+  showScreen('prep');
+  document.getElementById('prep-type-tag').textContent = st.chosen.sub;
+  document.getElementById('prep-topic-text').textContent = st.chosen.text;
+
+  // hints
+  const hc = document.getElementById('hints-container');
+  hc.innerHTML = '';
+  HINTS.forEach((h,i) => {
+    const d = document.createElement('div');
+    d.className='hint-item';
+    d.innerHTML=`<span class="hint-num">${i+1}</span><span>${h}</span>`;
+    hc.appendChild(d);
+  });
+  st.hintTimers.forEach(clearTimeout); st.hintTimers=[];
+
+  clearInterval(st.prepTimer);
+
+  if (st.mode==='nsda') {
+    document.getElementById('nsda-timer-block').style.display='block';
+    document.getElementById('std-timer-block').style.display='none';
+    st.nsdaRemaining=420; st.nsdaPrepUsed=0;
+    document.getElementById('phase-prep-badge').classList.add('active');
+    document.getElementById('phase-speak-badge').classList.remove('active');
+    updateNsdaClk();
+
+    const hintInterval = (st.nsdaPrepSecs*1000)/(HINTS.length+1);
+    hc.querySelectorAll('.hint-item').forEach((el,i)=>{
+      st.hintTimers.push(setTimeout(()=>el.classList.add('visible'), hintInterval*(i+1)));
+    });
+
+    st.prepTimer = setInterval(()=>{
+      st.nsdaRemaining--; st.nsdaPrepUsed++;
+      updateNsdaClk();
+      if (st.nsdaRemaining<=0) { clearInterval(st.prepTimer); flashAlert("TIME'S UP!"); setTimeout(()=>endSpeech(),800); }
+    },1000);
+
+  } else {
+    document.getElementById('nsda-timer-block').style.display='none';
+    document.getElementById('std-timer-block').style.display='block';
+    const ps = st.customPrepSecs;
+    if (ps===0) { beginSpeech(); return; }
+    st.prepRemaining = ps;
+    const C = 502.7;
+    document.getElementById('prep-ring').style.strokeDashoffset='0';
+    document.getElementById('prep-timer').textContent=fmt(ps);
+
+    const hintInterval = (ps*1000)/(HINTS.length+1);
+    hc.querySelectorAll('.hint-item').forEach((el,i)=>{
+      st.hintTimers.push(setTimeout(()=>el.classList.add('visible'), hintInterval*(i+1)));
+    });
+
+    st.prepTimer = setInterval(()=>{
+      st.prepRemaining--;
+      document.getElementById('prep-ring').style.strokeDashoffset = C*(1-(st.prepRemaining/ps));
+      document.getElementById('prep-timer').textContent=fmt(st.prepRemaining);
+      if (st.prepRemaining<=0) { clearInterval(st.prepTimer); flashAlert('BEGIN SPEECH!'); setTimeout(()=>beginSpeech(),1000); }
+    },1000);
+  }
+}
+
+function updateNsdaClk() {
+  const el=document.getElementById('nsda-total-clock');
+  el.textContent=fmt(st.nsdaRemaining);
+  el.classList.toggle('urgent', st.nsdaRemaining<=60);
+}
+
+// ============================================================
+// SPEECH
+// ============================================================
+function beginSpeech() {
+  clearInterval(st.prepTimer);
+  st.hintTimers.forEach(clearTimeout);
+  showScreen('speech');
+  st.speechElapsed=0; st.speechDuration=0;
+  document.getElementById('speech-topic-display').textContent = st.chosen.text;
+
+  clearInterval(st.speechTimer);
+
+  if (st.mode==='nsda') {
+    document.getElementById('speech-format-tag').textContent = 'NSDA · '+fmt(st.nsdaRemaining)+' left';
+    document.getElementById('nsda-speech-info').style.display='flex';
+    document.getElementById('struct-guide').style.display='none';
+    document.getElementById('speech-progress-bar').style.display='none';
+    document.getElementById('speech-phase-label').textContent='';
+    document.getElementById('nsda-prep-used-disp').textContent=fmt(st.nsdaPrepUsed);
+    document.getElementById('nsda-remain-clock').textContent=fmt(st.nsdaRemaining);
+    document.getElementById('nsda-elapsed-clock').textContent='0:00';
+    document.getElementById('speech-timer').textContent='0:00';
+
+    st.speechTimer=setInterval(()=>{
+      st.nsdaRemaining--; st.speechElapsed++; st.speechDuration=st.speechElapsed;
+      document.getElementById('nsda-remain-clock').textContent=fmt(st.nsdaRemaining);
+      document.getElementById('nsda-elapsed-clock').textContent=fmt(st.speechElapsed);
+      document.getElementById('speech-format-tag').textContent='NSDA · '+fmt(st.nsdaRemaining)+' left';
+      const te=document.getElementById('speech-timer');
+      te.textContent=fmt(st.speechElapsed);
+      te.classList.toggle('warning', st.nsdaRemaining<=30 && st.nsdaRemaining>0);
+      if (st.nsdaRemaining===30) flashAlert('30 SECONDS');
+      if (st.nsdaRemaining<=0) { clearInterval(st.speechTimer); flashAlert("TIME'S UP!"); setTimeout(()=>endSpeech(),800); }
+    },1000);
+
+  } else {
+    const ss=st.customSpeechSecs, untimed=ss===0;
+    document.getElementById('speech-format-tag').textContent=untimed?'CUSTOM · UNTIMED':'CUSTOM · '+fmt(ss);
+    document.getElementById('nsda-speech-info').style.display='none';
+    document.getElementById('struct-guide').style.display='flex';
+    document.getElementById('speech-progress-bar').style.display='block';
+
+    const struct=getStructure(untimed?180:ss);
+    let cum=0;
+    const bounds=struct.map(s=>{ cum+=s.fraction; return Math.round(cum*(untimed?180:ss)); });
+    const guide=document.getElementById('struct-guide');
+    guide.innerHTML='';
+    struct.forEach((s,i)=>{
+      const d=document.createElement('div');
+      d.className='struct-segment'+(i===0?' active':'');
+      d.dataset.end=bounds[i];
+      d.innerHTML=`<span class="struct-name">${s.name}</span><span class="struct-time">${fmt(Math.round(s.fraction*(untimed?180:ss)))}</span>`;
+      guide.appendChild(d);
+    });
+    document.getElementById('speech-progress').style.width='100%';
+
+    st.speechTimer=setInterval(()=>{
+      st.speechElapsed++; st.speechDuration=st.speechElapsed;
+      const te=document.getElementById('speech-timer');
+      te.textContent=fmt(st.speechElapsed);
+      if (!untimed) {
+        const rem=ss-st.speechElapsed;
+        document.getElementById('speech-progress').style.width=Math.max(0,(rem/ss)*100)+'%';
+        te.classList.toggle('warning', rem<=30&&rem>0);
+        te.classList.toggle('overtime', rem<0);
+        if (rem===30) flashAlert('30 SECONDS');
+        if (rem===0) { flashAlert("TIME'S UP!"); setTimeout(()=>endSpeech(),800); }
+        // structure
+        const segs=guide.querySelectorAll('.struct-segment');
+        let ai=segs.length-1;
+        segs.forEach((seg,i)=>{ if(st.speechElapsed<=+seg.dataset.end) ai=Math.min(ai,i); });
+        segs.forEach((seg,i)=>seg.classList.toggle('active',i===ai));
+        document.getElementById('speech-phase-label').textContent=struct[ai]?.name||'';
+        bounds.forEach((b,i)=>{ if(st.speechElapsed===b&&i<bounds.length-1) flashAlert(struct[i+1].name.toUpperCase()); });
+      }
+    },1000);
+  }
+}
+
+// ============================================================
+// END / REVIEW
+// ============================================================
+function endSpeech() {
+  clearInterval(st.speechTimer);
+  const s={
+    topic:st.chosen.text, sub:st.chosen.sub, mode:st.mode,
+    duration:st.speechDuration,
+    prepUsed:st.mode==='nsda'?st.nsdaPrepUsed:(st.customPrepSecs-st.prepRemaining),
+    date:new Date().toISOString(),
+  };
+  st.sessions.push(s);
+  localStorage.setItem('podium_v3',JSON.stringify(st.sessions));
+  showScreen('review');
+  buildReview(s);
+}
+
+function buildReview(s) {
+  document.getElementById('review-topic-display').textContent=s.topic;
+
+  document.getElementById('review-stats').innerHTML=`
+    <div class="stat-box"><span class="stat-val hl">${fmt(s.duration)}</span><span class="stat-lbl">Speech Time</span></div>
+    <div class="stat-box"><span class="stat-val">${fmt(s.prepUsed||0)}</span><span class="stat-lbl">Prep Used</span></div>
+    <div class="stat-box"><span class="stat-val">${s.sub||'—'}</span><span class="stat-lbl">Prompt Type</span></div>
+    <div class="stat-box"><span class="stat-val">${st.sessions.length}</span><span class="stat-lbl">Sessions</span></div>`;
+
+  document.getElementById('nsda-criteria').style.display=st.mode==='nsda'?'grid':'none';
+
+  const fl=document.getElementById('feedback-list');
+  fl.innerHTML='';
+  FEEDBACK.forEach(f=>{
+    const li=document.createElement('li');
+    li.innerHTML=`<span class="check-icon">${f.icon}</span><span>${f.text}</span>`;
+    fl.appendChild(li);
+  });
+
+  const lc=document.getElementById('session-log-container');
+  const recent=[...st.sessions].reverse().slice(0,6);
+  lc.innerHTML=recent.length>1?`<div class="session-log"><h3>Session History</h3>${recent.map(r=>`
+    <div class="log-entry"><span class="log-topic">${r.topic}</span><span class="log-fmt">${(r.mode||'custom').toUpperCase()}</span><span class="log-dur">${fmt(r.duration)}</span></div>`).join('')}</div>`:'';
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+function getStructure(secs) {
+  if (secs<=120) return [{name:"Intro",fraction:.2},{name:"Body",fraction:.6},{name:"Close",fraction:.2}];
+  if (secs<=300) return [{name:"Intro",fraction:.15},{name:"Point 1",fraction:.3},{name:"Point 2",fraction:.3},{name:"Recap",fraction:.1},{name:"Close",fraction:.15}];
+  return [{name:"Intro",fraction:.1},{name:"Point 1",fraction:.25},{name:"Point 2",fraction:.25},{name:"Point 3",fraction:.2},{name:"Recap",fraction:.1},{name:"Close",fraction:.1}];
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function goHome() {
+  clearInterval(st.prepTimer); clearInterval(st.speechTimer);
+  st.hintTimers.forEach(clearTimeout);
+  showScreen('setup');
+}
+
+function retryTopic() {
+  clearInterval(st.prepTimer); clearInterval(st.speechTimer);
+  st.hintTimers.forEach(clearTimeout);
+  beginPrep();
+}
+
+function fmt(secs) {
+  secs=Math.abs(+secs||0);
+  return `${Math.floor(secs/60)}:${(secs%60).toString().padStart(2,'0')}`;
+}
+
+let alertT;
+function flashAlert(msg) {
+  const el=document.getElementById('phase-alert');
+  el.textContent=msg; el.classList.add('show');
+  clearTimeout(alertT);
+  alertT=setTimeout(()=>el.classList.remove('show'),1400);
+}
+
+// init
+updateNsdaSplit(120);
+</script>
+</body>
+</html>

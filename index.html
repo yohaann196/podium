@@ -162,6 +162,12 @@
   .hint-item.visible { opacity: 1; transform: translateX(0); }
   .hint-num { font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; color: var(--gold); line-height: 1.1; min-width: 1.2rem; }
 
+  /* hints toggle */
+  .hints-toggle { display: flex; gap: 0.5rem; margin-top: 0.5rem; }
+  .hints-toggle-btn { background: none; border: 1.5px solid var(--ink); padding: 0.4rem 1.1rem; cursor: pointer; font-family: 'DM Mono', monospace; font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase; transition: all 0.15s; }
+  .hints-toggle-btn:hover { background: var(--faint); }
+  .hints-toggle-btn.selected { background: var(--ink); color: var(--paper); }
+
   /* controls */
   .controls { display: flex; gap: 1rem; justify-content: center; margin-top: 2rem; flex-wrap: wrap; }
   .ctrl-btn { font-family: 'DM Mono', monospace; font-size: 0.73rem; letter-spacing: 0.1em; padding: 0.75rem 1.75rem; border: 2px solid var(--ink); background: none; cursor: pointer; transition: all 0.15s; text-transform: uppercase; }
@@ -307,6 +313,15 @@
         <button class="tt-btn" data-tt="abstract" onclick="selectTT(this)"><span class="tt-icon">💡</span>Abstract</button>
       </div>
     </div>
+
+    <div class="card">
+      <h2>Structure Hints</h2>
+      <span class="section-label">Coaching tips during prep time</span>
+      <div class="hints-toggle">
+        <button class="hints-toggle-btn selected" data-hints-toggle="on" onclick="toggleHints(true)">ON</button>
+        <button class="hints-toggle-btn" data-hints-toggle="off" onclick="toggleHints(false)">OFF</button>
+      </div>
+    </div>
   </div>
 
   <!-- CUSTOM -->
@@ -351,6 +366,14 @@
             <button class="cat-btn" data-cat="ethics" onclick="selectCat(this)">Ethics</button>
             <button class="cat-btn" data-cat="society" onclick="selectCat(this)">Society</button>
             <button class="cat-btn" data-cat="economics" onclick="selectCat(this)">Economy</button>
+          </div>
+        </div>
+        <div class="custom-field">
+          <label>Structure Hints</label>
+          <span class="field-desc">Coaching tips during prep time</span>
+          <div class="hints-toggle">
+            <button class="hints-toggle-btn selected" data-hints-toggle="on" onclick="toggleHints(true)">ON</button>
+            <button class="hints-toggle-btn" data-hints-toggle="off" onclick="toggleHints(false)">OFF</button>
           </div>
         </div>
       </div>
@@ -412,7 +435,7 @@
       </div>
     </div>
 
-    <div class="hints-box">
+    <div id="hints-box" class="hints-box">
       <h3>🧠 Structure hints — appear gradually during prep</h3>
       <div id="hints-container"></div>
     </div>
@@ -646,6 +669,7 @@ let st = {
   prepTimer: null,
   speechTimer: null,
   hintTimers: [],
+  showHints: true,
   sessions: JSON.parse(localStorage.getItem('podium_v3') || '[]'),
 };
 
@@ -678,6 +702,12 @@ function selectCat(btn) {
   btn.closest('.category-grid').querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('selected'));
   btn.classList.add('selected');
   st.category = btn.dataset.cat;
+}
+
+function toggleHints(on) {
+  st.showHints = on;
+  document.querySelectorAll('[data-hints-toggle="on"]').forEach(b=>b.classList.toggle('selected', on));
+  document.querySelectorAll('[data-hints-toggle="off"]').forEach(b=>b.classList.toggle('selected', !on));
 }
 
 function adjustNum(id, delta, min, max) {
@@ -747,6 +777,7 @@ function beginPrep() {
     hc.appendChild(d);
   });
   st.hintTimers.forEach(clearTimeout); st.hintTimers=[];
+  document.getElementById('hints-box').style.display = st.showHints ? '' : 'none';
 
   clearInterval(st.prepTimer);
 
@@ -758,10 +789,12 @@ function beginPrep() {
     document.getElementById('phase-speak-badge').classList.remove('active');
     updateNsdaClk();
 
-    const hintInterval = (st.nsdaPrepSecs*1000)/(HINTS.length+1);
-    hc.querySelectorAll('.hint-item').forEach((el,i)=>{
-      st.hintTimers.push(setTimeout(()=>el.classList.add('visible'), hintInterval*(i+1)));
-    });
+    if (st.showHints) {
+      const hintInterval = (st.nsdaPrepSecs*1000)/(HINTS.length+1);
+      hc.querySelectorAll('.hint-item').forEach((el,i)=>{
+        st.hintTimers.push(setTimeout(()=>el.classList.add('visible'), hintInterval*(i+1)));
+      });
+    }
 
     st.prepTimer = setInterval(()=>{
       st.nsdaRemaining--; st.nsdaPrepUsed++;
@@ -779,10 +812,12 @@ function beginPrep() {
     document.getElementById('prep-ring').style.strokeDashoffset='0';
     document.getElementById('prep-timer').textContent=fmt(ps);
 
-    const hintInterval = (ps*1000)/(HINTS.length+1);
-    hc.querySelectorAll('.hint-item').forEach((el,i)=>{
-      st.hintTimers.push(setTimeout(()=>el.classList.add('visible'), hintInterval*(i+1)));
-    });
+    if (st.showHints) {
+      const hintInterval = (ps*1000)/(HINTS.length+1);
+      hc.querySelectorAll('.hint-item').forEach((el,i)=>{
+        st.hintTimers.push(setTimeout(()=>el.classList.add('visible'), hintInterval*(i+1)));
+      });
+    }
 
     st.prepTimer = setInterval(()=>{
       st.prepRemaining--;

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PODIUM — Impromptu Debate Trainer</title>
+<title>PODIUM — Debate Arena & Practice Lab</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Playfair+Display:ital,wght@0,400;1,700&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -47,6 +47,92 @@
 
   .screen { display: none; }
   .screen.active { display: block; }
+
+  .setup-panel { display: none; }
+  .setup-panel.active { display: block; }
+
+  .app-tabs {
+    display: flex;
+    border: 2px solid var(--ink);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+    background: var(--cream);
+  }
+  .app-tab {
+    flex: 1;
+    padding: 1rem 1.2rem;
+    border: none;
+    border-right: 1.5px solid var(--ink);
+    background: none;
+    cursor: pointer;
+    text-align: left;
+    font-family: 'DM Mono', monospace;
+    transition: all 0.15s;
+  }
+  .app-tab:last-child { border-right: none; }
+  .app-tab:hover { background: var(--faint); }
+  .app-tab.selected { background: var(--ink); color: var(--paper); }
+  .app-tab-name {
+    display: block;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.35rem;
+    letter-spacing: 0.12em;
+  }
+  .app-tab-sub {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.55;
+  }
+
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.4rem 0.7rem;
+    border: 1.5px solid var(--ink);
+    background: var(--gold);
+    color: var(--ink);
+    font-size: 0.62rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+  .compete-copy {
+    max-width: 680px;
+    font-size: 0.84rem;
+    line-height: 1.7;
+    margin-bottom: 1.5rem;
+  }
+  .compete-roadmap {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+    margin: 1.25rem 0 1.5rem;
+  }
+  @media (max-width: 640px) {
+    .compete-roadmap { grid-template-columns: 1fr; }
+  }
+  .compete-roadmap-item {
+    border: 1.5px solid var(--ink);
+    padding: 1rem;
+    background: rgba(13,13,13,0.03);
+  }
+  .compete-roadmap-item strong {
+    display: block;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1rem;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.35rem;
+  }
+  .compete-roadmap-item span {
+    display: block;
+    font-size: 0.72rem;
+    line-height: 1.55;
+    opacity: 0.75;
+  }
 
   .screen-heading { font-family: 'Bebas Neue', sans-serif; font-size: 1rem; letter-spacing: 0.25em; text-transform: uppercase; opacity: 0.4; margin-bottom: 0.25rem; }
   .screen-title { font-family: 'Playfair Display', serif; font-size: 2.2rem; line-height: 1.2; margin-bottom: 2rem; }
@@ -249,140 +335,187 @@
 
 <header>
   <div class="logo">POD<span>I</span>UM</div>
-  <div class="tagline">Impromptu Speech Trainer &mdash; Speak without fear</div>
+  <div class="tagline">Compete and practice &mdash; live debate is in progress</div>
 </header>
 
 <main>
 
 <!-- ===== SETUP ===== -->
 <div id="screen-setup" class="screen active">
-  <p class="screen-heading">Session Configuration</p>
-  <h1 class="screen-title">Choose Your Format</h1>
-
-  <div class="format-tabs">
-    <button class="fmt-tab selected" onclick="switchFormat('nsda',this)">
-      <span class="tab-name">NSDA</span>
-      <span class="tab-sub">Official Rules · 7 min total</span>
+  <div class="app-tabs">
+    <button class="app-tab selected" data-app-tab="compete" onclick="switchAppTab('compete')">
+      <span class="app-tab-name">Compete</span>
+      <span class="app-tab-sub">Live Text Debate Arena</span>
     </button>
-    <button class="fmt-tab" onclick="switchFormat('custom',this)">
-      <span class="tab-name">Custom</span>
-      <span class="tab-sub">Your own rules</span>
+    <button class="app-tab" data-app-tab="practice" onclick="switchAppTab('practice')">
+      <span class="app-tab-name">Practice</span>
+      <span class="app-tab-sub">Impromptu Speech Trainer</span>
     </button>
   </div>
 
-  <!-- NSDA -->
-  <div id="fmt-nsda" class="fmt-panel active">
-    <div class="card" style="padding:0;overflow:hidden">
-      <div class="nsda-info">
-        <strong>NSDA Impromptu Rules</strong> — Draw <strong>3 prompts</strong>, pick one, and use
-        <strong>7 minutes total</strong> however you want between prep and speech. No notes allowed.
-        Prompts can be quotes, current events, famous people, objects, or abstract ideas.
-        <div class="nsda-summary">
-          <div class="nsda-stat"><span class="nsda-stat-val">3</span><span class="nsda-stat-lbl">Prompts Drawn</span></div>
-          <div class="nsda-stat"><span class="nsda-stat-val">7</span><span class="nsda-stat-lbl">Total Minutes</span></div>
-          <div class="nsda-stat"><span class="nsda-stat-val">0</span><span class="nsda-stat-lbl">Notes Allowed</span></div>
+  <div id="setup-compete-panel" class="setup-panel active">
+    <p class="screen-heading">Main Arena</p>
+    <h1 class="screen-title">Compete</h1>
+    <div class="card">
+      <span class="status-pill">In Progress</span>
+      <h2>Compete is not live yet.</h2>
+      <p class="compete-copy">
+        The tab is clickable so the main navigation is in place, but the multiplayer side still
+        needs a backend before it can do anything real.
+      </p>
+      <p class="compete-copy" style="margin-top:-0.5rem">
+        For now this stays intentionally static. Practice is fully usable; compete is just the
+        placeholder for rooms, rounds, and ratings.
+      </p>
+      <div class="compete-roadmap">
+        <div class="compete-roadmap-item">
+          <strong>Rooms</strong>
+          <span>Create or join a debate room and get assigned a side.</span>
         </div>
-        <div class="split-slider-area">
-          <label>Suggested prep / speech split (drag to adjust your target)</label>
-          <div class="split-display">
-            <div><span class="split-val prep-val" id="nsda-prep-val">2:00</span><span style="font-size:0.6rem;opacity:0.45;display:block;letter-spacing:0.1em;margin-top:0.1rem">PREP</span></div>
-            <span class="split-sep">+</span>
-            <div><span class="split-val speak-val" id="nsda-speak-val">5:00</span><span style="font-size:0.6rem;opacity:0.45;display:block;letter-spacing:0.1em;margin-top:0.1rem">SPEECH</span></div>
-            <span class="split-sep">=</span>
-            <div><span class="split-val" style="color:var(--paper)">7:00</span><span style="font-size:0.6rem;opacity:0.45;display:block;letter-spacing:0.1em;margin-top:0.1rem">TOTAL</span></div>
-          </div>
-          <input type="range" id="nsda-split-range" min="30" max="390" step="30" value="120" oninput="updateNsdaSplit(this.value)">
-          <div class="split-bar">
-            <div class="split-bar-prep" id="split-bar-prep" style="width:28.6%"></div>
-            <div class="split-bar-speak"></div>
-          </div>
-          <p style="font-size:0.58rem;opacity:0.35;margin-top:0.6rem;letter-spacing:0.08em">You control when to stop prepping and begin speaking — the timer runs continuously.</p>
+        <div class="compete-roadmap-item">
+          <strong>Rounds</strong>
+          <span>Timed text exchanges with a clean transcript at the end.</span>
+        </div>
+        <div class="compete-roadmap-item">
+          <strong>Ratings</strong>
+          <span>Results and Elo-style updates will live here instead of in practice.</span>
         </div>
       </div>
-    </div>
-
-    <div class="card">
-      <h2>Prompt Type</h2>
-      <span class="section-label">Style of prompts you'll draw</span>
-      <div class="topic-type-grid">
-        <button class="tt-btn selected" data-tt="all" onclick="selectTT(this)"><span class="tt-icon">🎲</span>Mixed</button>
-        <button class="tt-btn" data-tt="quotes" onclick="selectTT(this)"><span class="tt-icon">💬</span>Quotes</button>
-        <button class="tt-btn" data-tt="events" onclick="selectTT(this)"><span class="tt-icon">🌍</span>Current Events</button>
-        <button class="tt-btn" data-tt="people" onclick="selectTT(this)"><span class="tt-icon">🧑</span>Famous People</button>
-        <button class="tt-btn" data-tt="objects" onclick="selectTT(this)"><span class="tt-icon">📦</span>Objects / Places</button>
-        <button class="tt-btn" data-tt="abstract" onclick="selectTT(this)"><span class="tt-icon">💡</span>Abstract</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>Structure Hints</h2>
-      <span class="section-label">Coaching tips during prep time</span>
-      <div class="hints-toggle">
-        <button class="hints-toggle-btn selected" data-hints-toggle="on" onclick="toggleHints(true)">ON</button>
-        <button class="hints-toggle-btn" data-hints-toggle="off" onclick="toggleHints(false)">OFF</button>
+      <div class="controls" style="justify-content:flex-start;margin-top:0">
+        <button class="ctrl-btn primary" onclick="switchAppTab('practice')">Go To Practice</button>
       </div>
     </div>
   </div>
 
-  <!-- CUSTOM -->
-  <div id="fmt-custom" class="fmt-panel">
-    <div class="card">
-      <h2>Custom Settings</h2>
-      <div class="custom-grid">
-        <div class="custom-field">
-          <label>Number of Prompts</label>
-          <span class="field-desc">How many prompts to draw and choose from</span>
-          <div class="num-control">
-            <button onclick="adjustNum('custom-prompts',-1,1,5)">−</button>
-            <input type="number" id="custom-prompts" value="3" min="1" max="5" readonly>
-            <button onclick="adjustNum('custom-prompts',1,1,5)">+</button>
+  <div id="setup-practice-panel" class="setup-panel">
+    <p class="screen-heading">Session Configuration</p>
+    <h1 class="screen-title">Choose Your Format</h1>
+
+    <div class="format-tabs">
+      <button class="fmt-tab selected" onclick="switchFormat('nsda',this)">
+        <span class="tab-name">NSDA</span>
+        <span class="tab-sub">Official Rules · 7 min total</span>
+      </button>
+      <button class="fmt-tab" onclick="switchFormat('custom',this)">
+        <span class="tab-name">Custom</span>
+        <span class="tab-sub">Your own rules</span>
+      </button>
+    </div>
+
+    <!-- NSDA -->
+    <div id="fmt-nsda" class="fmt-panel active">
+      <div class="card" style="padding:0;overflow:hidden">
+        <div class="nsda-info">
+          <strong>NSDA Impromptu Rules</strong> — Draw <strong>3 prompts</strong>, pick one, and use
+          <strong>7 minutes total</strong> however you want between prep and speech. No notes allowed.
+          Prompts can be quotes, current events, famous people, objects, or abstract ideas.
+          <div class="nsda-summary">
+            <div class="nsda-stat"><span class="nsda-stat-val">3</span><span class="nsda-stat-lbl">Prompts Drawn</span></div>
+            <div class="nsda-stat"><span class="nsda-stat-val">7</span><span class="nsda-stat-lbl">Total Minutes</span></div>
+            <div class="nsda-stat"><span class="nsda-stat-val">0</span><span class="nsda-stat-lbl">Notes Allowed</span></div>
+          </div>
+          <div class="split-slider-area">
+            <label>Suggested prep / speech split (drag to adjust your target)</label>
+            <div class="split-display">
+              <div><span class="split-val prep-val" id="nsda-prep-val">2:00</span><span style="font-size:0.6rem;opacity:0.45;display:block;letter-spacing:0.1em;margin-top:0.1rem">PREP</span></div>
+              <span class="split-sep">+</span>
+              <div><span class="split-val speak-val" id="nsda-speak-val">5:00</span><span style="font-size:0.6rem;opacity:0.45;display:block;letter-spacing:0.1em;margin-top:0.1rem">SPEECH</span></div>
+              <span class="split-sep">=</span>
+              <div><span class="split-val" style="color:var(--paper)">7:00</span><span style="font-size:0.6rem;opacity:0.45;display:block;letter-spacing:0.1em;margin-top:0.1rem">TOTAL</span></div>
+            </div>
+            <input type="range" id="nsda-split-range" min="30" max="390" step="30" value="120" oninput="updateNsdaSplit(this.value)">
+            <div class="split-bar">
+              <div class="split-bar-prep" id="split-bar-prep" style="width:28.6%"></div>
+              <div class="split-bar-speak"></div>
+            </div>
+            <p style="font-size:0.58rem;opacity:0.35;margin-top:0.6rem;letter-spacing:0.08em">You control when to stop prepping and begin speaking — the timer runs continuously.</p>
           </div>
         </div>
-        <div class="custom-field">
-          <label>Prep Time (minutes)</label>
-          <span class="field-desc">Brainstorm time before speaking</span>
-          <div class="num-control">
-            <button onclick="adjustNum('custom-prep',-1,0,30)">−</button>
-            <input type="number" id="custom-prep" value="2" min="0" max="30" readonly>
-            <button onclick="adjustNum('custom-prep',1,0,30)">+</button>
-          </div>
+      </div>
+
+      <div class="card">
+        <h2>Prompt Type</h2>
+        <span class="section-label">Style of prompts you'll draw</span>
+        <div class="topic-type-grid">
+          <button class="tt-btn selected" data-tt="all" onclick="selectTT(this)"><span class="tt-icon">🎲</span>Mixed</button>
+          <button class="tt-btn" data-tt="quotes" onclick="selectTT(this)"><span class="tt-icon">💬</span>Quotes</button>
+          <button class="tt-btn" data-tt="events" onclick="selectTT(this)"><span class="tt-icon">🌍</span>Current Events</button>
+          <button class="tt-btn" data-tt="people" onclick="selectTT(this)"><span class="tt-icon">🧑</span>Famous People</button>
+          <button class="tt-btn" data-tt="objects" onclick="selectTT(this)"><span class="tt-icon">📦</span>Objects / Places</button>
+          <button class="tt-btn" data-tt="abstract" onclick="selectTT(this)"><span class="tt-icon">💡</span>Abstract</button>
         </div>
-        <div class="custom-field">
-          <label>Speech Time (minutes)</label>
-          <span class="field-desc">Max speaking time (0 = untimed)</span>
-          <div class="num-control">
-            <button onclick="adjustNum('custom-speech',-1,0,30)">−</button>
-            <input type="number" id="custom-speech" value="3" min="0" max="30" readonly>
-            <button onclick="adjustNum('custom-speech',1,0,30)">+</button>
-          </div>
+      </div>
+
+      <div class="card">
+        <h2>Structure Hints</h2>
+        <span class="section-label">Coaching tips during prep time</span>
+        <div class="hints-toggle">
+          <button class="hints-toggle-btn selected" data-hints-toggle="on" onclick="toggleHints(true)">ON</button>
+          <button class="hints-toggle-btn" data-hints-toggle="off" onclick="toggleHints(false)">OFF</button>
         </div>
-        <div class="custom-field">
-          <label>Topic Category</label>
-          <span class="field-desc">Theme for your prompts</span>
-          <div class="category-grid" style="margin-top:0">
-            <button class="cat-btn selected" data-cat="all" onclick="selectCat(this)">All</button>
-            <button class="cat-btn" data-cat="politics" onclick="selectCat(this)">Politics</button>
-            <button class="cat-btn" data-cat="tech" onclick="selectCat(this)">Tech</button>
-            <button class="cat-btn" data-cat="ethics" onclick="selectCat(this)">Ethics</button>
-            <button class="cat-btn" data-cat="society" onclick="selectCat(this)">Society</button>
-            <button class="cat-btn" data-cat="economics" onclick="selectCat(this)">Economy</button>
+      </div>
+    </div>
+
+    <!-- CUSTOM -->
+    <div id="fmt-custom" class="fmt-panel">
+      <div class="card">
+        <h2>Custom Settings</h2>
+        <div class="custom-grid">
+          <div class="custom-field">
+            <label>Number of Prompts</label>
+            <span class="field-desc">How many prompts to draw and choose from</span>
+            <div class="num-control">
+              <button onclick="adjustNum('custom-prompts',-1,1,5)">−</button>
+              <input type="number" id="custom-prompts" value="3" min="1" max="5" readonly>
+              <button onclick="adjustNum('custom-prompts',1,1,5)">+</button>
+            </div>
           </div>
-        </div>
-        <div class="custom-field">
-          <label>Structure Hints</label>
-          <span class="field-desc">Coaching tips during prep time</span>
-          <div class="hints-toggle">
-            <button class="hints-toggle-btn selected" data-hints-toggle="on" onclick="toggleHints(true)">ON</button>
-            <button class="hints-toggle-btn" data-hints-toggle="off" onclick="toggleHints(false)">OFF</button>
+          <div class="custom-field">
+            <label>Prep Time (minutes)</label>
+            <span class="field-desc">Brainstorm time before speaking</span>
+            <div class="num-control">
+              <button onclick="adjustNum('custom-prep',-1,0,30)">−</button>
+              <input type="number" id="custom-prep" value="2" min="0" max="30" readonly>
+              <button onclick="adjustNum('custom-prep',1,0,30)">+</button>
+            </div>
+          </div>
+          <div class="custom-field">
+            <label>Speech Time (minutes)</label>
+            <span class="field-desc">Max speaking time (0 = untimed)</span>
+            <div class="num-control">
+              <button onclick="adjustNum('custom-speech',-1,0,30)">−</button>
+              <input type="number" id="custom-speech" value="3" min="0" max="30" readonly>
+              <button onclick="adjustNum('custom-speech',1,0,30)">+</button>
+            </div>
+          </div>
+          <div class="custom-field">
+            <label>Topic Category</label>
+            <span class="field-desc">Theme for your prompts</span>
+            <div class="category-grid" style="margin-top:0">
+              <button class="cat-btn selected" data-cat="all" onclick="selectCat(this)">All</button>
+              <button class="cat-btn" data-cat="politics" onclick="selectCat(this)">Politics</button>
+              <button class="cat-btn" data-cat="tech" onclick="selectCat(this)">Tech</button>
+              <button class="cat-btn" data-cat="ethics" onclick="selectCat(this)">Ethics</button>
+              <button class="cat-btn" data-cat="society" onclick="selectCat(this)">Society</button>
+              <button class="cat-btn" data-cat="economics" onclick="selectCat(this)">Economy</button>
+            </div>
+          </div>
+          <div class="custom-field">
+            <label>Structure Hints</label>
+            <span class="field-desc">Coaching tips during prep time</span>
+            <div class="hints-toggle">
+              <button class="hints-toggle-btn selected" data-hints-toggle="on" onclick="toggleHints(true)">ON</button>
+              <button class="hints-toggle-btn" data-hints-toggle="off" onclick="toggleHints(false)">OFF</button>
+            </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <div class="start-area">
-    <button class="big-btn" onclick="startSession()">DRAW PROMPTS →</button>
-    <p style="font-size:0.62rem;opacity:0.35;margin-top:1rem;letter-spacing:0.1em">PROMPTS REVEALED ON NEXT SCREEN</p>
+    <div class="start-area">
+      <button class="big-btn" onclick="startSession()">DRAW PROMPTS →</button>
+      <p style="font-size:0.62rem;opacity:0.35;margin-top:1rem;letter-spacing:0.1em">PROMPTS REVEALED ON NEXT SCREEN</p>
+    </div>
   </div>
 </div>
 
@@ -947,10 +1080,13 @@ const FEEDBACK = [
   {icon:"💡",text:"Did your speech have a clear beginning, middle, and end?"},
 ];
 
+const APP_TABS = ['compete', 'practice'];
+
 // ============================================================
 // STATE
 // ============================================================
 let st = {
+  appTab: 'compete',
   mode: 'nsda',
   topicType: 'all',
   category: 'all',
@@ -976,6 +1112,16 @@ let st = {
 // ============================================================
 // SETUP
 // ============================================================
+function switchAppTab(tab) {
+  st.appTab = tab;
+  document.querySelectorAll('.app-tab').forEach(btn => {
+    btn.classList.toggle('selected', btn.dataset.appTab === tab);
+  });
+  APP_TABS.forEach(name => {
+    document.getElementById(`setup-${name}-panel`).classList.toggle('active', name === tab);
+  });
+}
+
 function switchFormat(mode, btn) {
   document.querySelectorAll('.fmt-tab').forEach(b => b.classList.remove('selected'));
   btn.classList.add('selected');
@@ -1300,6 +1446,7 @@ function flashAlert(msg) {
 
 // init
 updateNsdaSplit(120);
+switchAppTab('compete');
 </script>
 </body>
 </html>

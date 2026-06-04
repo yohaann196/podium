@@ -1,12 +1,12 @@
 # PODIUM — Impromptu Speech Trainer
 
-A single-file web app for practicing impromptu speaking, built for NSDA competition prep and general public speaking practice. No backend, no dependencies, no install — just open `index.html` and speak.
+A single-file web app for practicing impromptu speaking, built for NSDA competition prep and general public speaking practice. No backend, dependencies, or install necessary — just open `index.html` and speak.
 
 ---
 
 ## What It Does
 
-PODIUM simulates a real impromptu speaking round. You draw prompts, pick one, prep, and deliver a speech — all timed. After each round you get a self-evaluation checklist and a session history log.
+basically simulates a real impromptu speaking round. You draw prompts, pick one, prep, and deliver a speech (timed). After each round you get a self-evaluation checklist and a session history log.
 
 Two formats are supported:
 
@@ -93,7 +93,7 @@ When using NSDA mode, the debrief reminds you of the three official evaluation a
 
 ## Tech
 
-- Vanilla HTML, CSS, JavaScript — zero frameworks, zero dependencies
+- Vanilla HTML, CSS, JavaScript — no frameworks
 - Google Fonts (Bebas Neue, DM Mono, Playfair Display) loaded via CDN
 - Session history stored in `localStorage`
 - Works in all modern browsers
@@ -112,4 +112,4 @@ To add your own prompts, edit the `PROMPTS` (NSDA) or `DEBATE_TOPICS` (Custom) o
 
 ## License
 
-MIT — do whatever you want with it.
+MIT
